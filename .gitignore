@@ -53,3 +53,5 @@ temp/
 
 # Package
 *.tgz
+
+serviceAccountKey.json
