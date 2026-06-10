@@ -29,7 +29,7 @@ class AttendanceApiService {
         'scanResults': [
           {
             'anchorId': beaconId,
-            'rssi': -60,
+            'rssi': -60, // Fixed high RSSI for testing "enrolled" logic
           }
         ],
       },

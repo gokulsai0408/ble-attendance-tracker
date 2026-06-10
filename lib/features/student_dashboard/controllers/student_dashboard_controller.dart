@@ -25,12 +25,16 @@ class StudentDashboardController extends ChangeNotifier {
   StudentPresenceStatus _presenceStatus = StudentPresenceStatus.searching;
   StudentPresenceStatus get presenceStatus => _presenceStatus;
 
-  int _totalIntervals = 0;
   int _validIntervals = 0;
   bool _hasShownPopup = false;
+  bool _isReporting = false;
 
   BleBeaconDetection? _currentDetection;
   BleBeaconDetection? get currentDetection => _currentDetection;
+
+  // For testing, we use a mock session ID.
+  // In production, this would be determined by the specific beacon UID or room.
+  final String _activeSessionId = "SESSION_ID_123";
 
   StudentDashboardController() {
     _bleService.isScanningStream.listen((scanning) {
@@ -41,27 +45,48 @@ class StudentDashboardController extends ChangeNotifier {
     _bleService.detectionStream.listen(_handleDetectionCycle);
   }
 
-  void _handleDetectionCycle(BleBeaconDetection? detection) {
+  void _handleDetectionCycle(BleBeaconDetection? detection) async {
     _currentDetection = detection;
     
-    if (detection == null) {
-      // If we were in class and now beacon is gone
+    if (detection == null || !detection.isPresenceValid) {
+      // If we move away, stop marking as in class
       if (_presenceStatus == StudentPresenceStatus.inClass) {
         _presenceStatus = StudentPresenceStatus.outOfRange;
-      } else if (_presenceStatus != StudentPresenceStatus.outOfRange) {
-         _presenceStatus = StudentPresenceStatus.searching;
+        notifyListeners();
       }
     } else {
-      if (detection.isPresenceValid) {
+      // Automatically report to backend if we detect the beacon
+      if (!_isReporting && _isSessionActive) {
+        await _reportPresenceToBackend(detection);
+      }
+    }
+  }
+
+  Future<void> _reportPresenceToBackend(BleBeaconDetection detection) async {
+    _isReporting = true;
+    try {
+      // This checks if the student is "enrolled" and nearby via backend logic
+      final isVerifiedOnServer = await _attendanceApi.markAttendance(
+        userId: AuthState.instance.uid ?? "STUDENT_GOKUL",
+        courseId: _activeSessionId,
+        beaconId: detection.deviceId,
+      );
+
+      if (isVerifiedOnServer) {
         _presenceStatus = StudentPresenceStatus.inClass;
         _validIntervals++;
+        
+        if (!_hasShownPopup) {
+          _hasShownPopup = true;
+          // Triggering the popup once to welcome the student
+        }
       } else {
         _presenceStatus = StudentPresenceStatus.outOfRange;
       }
-    }
-
-    if (_isSessionActive) {
-      _totalIntervals++;
+    } catch (e) {
+      debugPrint("Automatic reporting failed: $e");
+    } finally {
+      _isReporting = false;
       notifyListeners();
     }
   }
@@ -70,32 +95,24 @@ class StudentDashboardController extends ChangeNotifier {
     if (_isSessionActive) return;
 
     _isSessionActive = true;
-    _totalIntervals = 0;
     _validIntervals = 0;
     _hasShownPopup = false;
     _presenceStatus = StudentPresenceStatus.searching;
     notifyListeners();
 
-    // One-time listener for the initial detection popup
-    StreamSubscription? subscription;
-    subscription = _bleService.detectionStream.listen((detection) {
-      if (detection != null &&
-          detection.isPresenceValid &&
-          !_hasShownPopup &&
-          context.mounted) {
+    // Scan listener for the initial AirPods-style popup
+    StreamSubscription? popupSub;
+    popupSub = _bleService.detectionStream.listen((detection) {
+      if (detection != null && detection.isPresenceValid && !_hasShownPopup && context.mounted) {
         _hasShownPopup = true;
         LectureDetectedPopup.show(
           context,
           detection,
           "Mobile Computing",
           "LH-201",
-          () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Automatic Tracking Enabled")),
-            );
-          },
+          () {}, // Auto-confirms in background
         );
-        subscription?.cancel();
+        popupSub?.cancel();
       }
     });
 
@@ -107,18 +124,19 @@ class StudentDashboardController extends ChangeNotifier {
     _isSessionActive = false;
 
     final validMinutes = (_validIntervals * 30) ~/ 60;
-    final bool isPresent = validMinutes >= 50;
+    final bool isPresent = validMinutes >= 1; // 1 min threshold for demo
+
+    await _attendanceApi.markFinalAttendance(
+      userId: AuthState.instance.uid ?? "STUDENT_GOKUL",
+      courseId: _activeSessionId,
+      validMinutes: validMinutes,
+      isPresent: isPresent,
+    );
 
     if (context.mounted) {
       _showFinalStatusDialog(context, validMinutes, isPresent);
     }
-
-    await _attendanceApi.markFinalAttendance(
-      userId: AuthState.instance.uid ?? "STUDENT_GOKUL",
-      courseId: "MC_101",
-      validMinutes: validMinutes,
-      isPresent: isPresent,
-    );
+    
     notifyListeners();
   }
 
@@ -126,20 +144,14 @@ class StudentDashboardController extends ChangeNotifier {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isPresent ? "Attendance Recorded" : "Session Summary"),
-        content: Text(
-            "Total Valid Presence: $minutes minutes.\n\nStatus: ${isPresent ? "PRESENT" : "ABSENT (Insufficient Presence)"}"),
+        title: Text(isPresent ? "Attendance Recorded" : "Insufficient Presence"),
+        content: Text("You were present for $minutes minutes.\nStatus: ${isPresent ? "PRESENT" : "ABSENT"}"),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text("CLOSE")),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK")),
         ],
       ),
     );
   }
-
-  // Compatibility methods
-  Future<void> startAttendanceScan(BuildContext context) => startAttendanceSession(context);
-  void stopScan() => _bleService.stopScanning();
 
   @override
   void dispose() {

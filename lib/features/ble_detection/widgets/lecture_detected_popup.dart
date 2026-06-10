@@ -132,7 +132,7 @@ class LectureDetectedPopup extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: const Text('Confirm Presence'),
+                  child: const Text('Got it!'),
                 ),
               ),
             ],

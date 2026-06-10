@@ -4,12 +4,6 @@ import '../widgets/attendance_stats_card.dart';
 import '../widgets/recent_attendance_list.dart';
 import '../controllers/student_dashboard_controller.dart';
 
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../widgets/attendance_stats_card.dart';
-import '../widgets/recent_attendance_list.dart';
-import '../controllers/student_dashboard_controller.dart';
-
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
 
@@ -21,6 +15,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    // Automatically start the BLE scan and backend connection upon login
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<StudentDashboardController>().startAttendanceSession(context);
     });
@@ -93,7 +88,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         switch (controller.presenceStatus) {
           case StudentPresenceStatus.inClass:
             statusColor = Colors.green;
-            statusText = "Currently In Class (LH-201)";
+            statusText = "OK, Attendance is getting marked!";
             statusIcon = Icons.check_circle;
             break;
           case StudentPresenceStatus.outOfRange:

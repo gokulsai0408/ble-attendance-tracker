@@ -1,9 +1,15 @@
+import '../../../core/network/api_client.dart';
 import '../models/auth_session.dart';
 import 'auth_state.dart';
 
 class AuthApiService {
-  // Use mock logic by default so the app works without a backend
-  final bool _useMock = true;
+  AuthApiService({ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
+
+  final ApiClient _apiClient;
+
+  // Set this to false to use the real backend
+  static const bool _useMock = false;
 
   Future<void> register({
     required String name,
@@ -15,6 +21,16 @@ class AuthApiService {
       await Future.delayed(const Duration(milliseconds: 500));
       return;
     }
+
+    await _apiClient.post(
+      '/auth/register',
+      body: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'role': role,
+      },
+    );
   }
 
   Future<AuthSession> login({
@@ -34,6 +50,16 @@ class AuthApiService {
       return session;
     }
 
-    throw UnimplementedError("Backend not connected");
+    final response = await _apiClient.post(
+      '/auth/login',
+      body: {
+        'email': email,
+        'password': password,
+      },
+    ) as Map<String, dynamic>;
+
+    final session = AuthSession.fromJson(response);
+    AuthState.instance.currentSession = session;
+    return session;
   }
 }
