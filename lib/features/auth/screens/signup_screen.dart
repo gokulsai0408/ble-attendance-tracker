@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_api_service.dart';
+
 class SignupScreen extends StatefulWidget {
   final bool isStudent;
 
@@ -15,16 +17,44 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _idController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authApi = AuthApiService();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  void _handleSignup() {
-    if (_formKey.currentState!.validate()) {
-      // Mock signup logic
+  Future<void> _handleSignup() async {
+    if (!_formKey.currentState!.validate() || _isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _authApi.register(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        role: widget.isStudent ? 'student' : 'professor',
+      );
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created successfully! Please login.')),
+        const SnackBar(
+            content: Text('Account created successfully! Please login.')),
       );
       Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign up failed: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _idController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -45,7 +75,10 @@ class _SignupScreenState extends State<SignupScreen> {
               Text(
                 'Create Account',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
@@ -59,9 +92,11 @@ class _SignupScreenState extends State<SignupScreen> {
                 decoration: InputDecoration(
                   labelText: 'Full Name',
                   prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                validator: (value) => value == null || value.isEmpty ? 'Enter your name' : null,
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Enter your name' : null,
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -69,10 +104,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email Address',
                   prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) => value == null || !value.contains('@') ? 'Enter a valid email' : null,
+                validator: (value) => value == null || !value.contains('@')
+                    ? 'Enter a valid email'
+                    : null,
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -80,9 +118,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 decoration: InputDecoration(
                   labelText: idLabel,
                   prefixIcon: const Icon(Icons.badge_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                validator: (value) => value == null || value.isEmpty ? 'Enter your $idLabel' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Enter your $idLabel'
+                    : null,
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -92,23 +133,38 @@ class _SignupScreenState extends State<SignupScreen> {
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility_off
+                        : Icons.visibility),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                validator: (value) => value == null || value.length < 6 ? 'Password must be at least 6 characters' : null,
+                validator: (value) => value == null || value.length < 6
+                    ? 'Password must be at least 6 characters'
+                    : null,
               ),
               const SizedBox(height: 32),
               ElevatedButton(
-                onPressed: _handleSignup,
+                onPressed: _isLoading ? null : _handleSignup,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Sign Up',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 24),
               Row(

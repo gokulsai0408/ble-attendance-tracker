@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
+import '../models/ble_beacon_detection.dart';
 
-class BleDetectionPopup extends StatelessWidget {
+class LectureDetectedPopup extends StatelessWidget {
+  final BleBeaconDetection detection;
   final String courseName;
-  final String roomName;
+  final String classroomName;
   final VoidCallback onMarkAttendance;
 
-  const BleDetectionPopup({
+  const LectureDetectedPopup({
     super.key,
+    required this.detection,
     required this.courseName,
-    required this.roomName,
+    required this.classroomName,
     required this.onMarkAttendance,
   });
 
-  static void show(BuildContext context, String course, String room, VoidCallback onMark) {
+  static void show(
+    BuildContext context, 
+    BleBeaconDetection detection, 
+    String course, 
+    String classroom, 
+    VoidCallback onMark
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => BleDetectionPopup(
+      isScrollControlled: true,
+      builder: (context) => LectureDetectedPopup(
+        detection: detection,
         courseName: course,
-        roomName: room,
+        classroomName: classroom,
         onMarkAttendance: onMark,
       ),
     );
@@ -52,10 +63,10 @@ class BleDetectionPopup extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Icon(Icons.bluetooth_audio, size: 48, color: Colors.blue),
+          const Icon(Icons.sensors, size: 48, color: Colors.blue),
           const SizedBox(height: 16),
           const Text(
-            'Lecture Detected',
+            'Lecture Beacon Detected',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -65,8 +76,35 @@ class BleDetectionPopup extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           Text(
-            'Room: $roomName',
+            'Classroom: $classroomName',
             style: const TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: detection.isPresenceValid ? Colors.green.shade50 : Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  detection.isPresenceValid ? Icons.check_circle : Icons.warning,
+                  size: 20,
+                  color: detection.isPresenceValid ? Colors.green : Colors.red,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Avg RSSI: ${detection.averageRssi.toStringAsFixed(1)} dBm',
+                  style: TextStyle(
+                    fontSize: 14, 
+                    color: detection.isPresenceValid ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -94,7 +132,7 @@ class BleDetectionPopup extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: const Text('Mark Attendance'),
+                  child: const Text('Confirm Presence'),
                 ),
               ),
             ],

@@ -17,17 +17,19 @@ class ProfessorDashboardScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ProfessorAnalyticsScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const ProfessorAnalyticsScreen(),
+                ),
               );
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Active Lectures',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -62,7 +64,7 @@ class ProfessorDashboardScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Starting Bluetooth Broadcast...'))
+            const SnackBar(content: Text('Starting Bluetooth Broadcast...')),
           );
         },
         label: const Text('Start New Session'),
