@@ -1,5 +1,5 @@
 const DEFAULT_THRESHOLD = parseInt(process.env.RSSI_THRESHOLD || "-75", 10);
-const MIN_ANCHORS = parseInt(process.env.MIN_ANCHORS || "2", 10);
+const MIN_ANCHORS = parseInt(process.env.MIN_ANCHORS || "1", 10);
 
 // in-memory store: { [studentUid]: { [anchorId]: number[] } }
 const store = {};

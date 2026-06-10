@@ -70,6 +70,7 @@ class StudentDashboardController extends ChangeNotifier {
         userId: AuthState.instance.uid ?? "STUDENT_GOKUL",
         courseId: _activeSessionId,
         beaconId: detection.deviceId,
+        rssi: detection.rssi,
       );
 
       if (isVerifiedOnServer) {

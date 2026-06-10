@@ -13,7 +13,8 @@ class AttendanceApiService {
   Future<bool> markAttendance(
       {required String userId,
       required String courseId,
-      required String beaconId}) async {
+      required String beaconId,
+      required int rssi}) async {
     final token = AuthState.instance.token;
     if (token == null) {
       throw ApiException('You must be logged in before marking attendance.',
@@ -29,7 +30,7 @@ class AttendanceApiService {
         'scanResults': [
           {
             'anchorId': beaconId,
-            'rssi': -60, // Fixed high RSSI for testing "enrolled" logic
+            'rssi': rssi,
           }
         ],
       },
